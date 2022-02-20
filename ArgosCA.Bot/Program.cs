@@ -8,30 +8,40 @@ using Remora.Discord.Hosting.Extensions;
 using Remora.Rest.Core;
 using Remora.Results;
 
-// The Discord authentication token for the bot.
-string botToken = "";
-
-// The Discord guilds in which the bot will register commands.
-Snowflake?[] guilds = Array.Empty<Snowflake?>();
-
-// In Debug configuration, get debug botToken and guild from user secrets.
-#if DEBUG
-IConfiguration config = new ConfigurationBuilder()
-    .AddUserSecrets("6725952A-852B-4D2D-AEF4-FD2649E173A9").Build();
-botToken = config.GetValue<string>("DEBUG_BOT_TOKEN");
-string guildID = config.GetValue<string>("DEBUG_GUILD_ID");
-if (!DiscordSnowflake.TryParse(guildID, out Snowflake? debugGuild))
+// Create configuration for Discord API connection settings.
+//     The default configuration is in appsettings.json.
+//     In Development environment, use Development configuration if available.
+//     Otherwise, use Production configuration if available.
+IConfiguration discordConfig;
+if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
 {
-    // TODO: Handle invalid guild ID.
-    return;
+    discordConfig = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .AddJsonFile("discordsettings.Development.json", true)
+        .Build();
 }
-guilds = new Snowflake?[] { debugGuild };
-#endif
+else
+{
+    discordConfig = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .AddJsonFile("discordsettings.Production.json", true)
+        .Build();
+}
 
-// In Release configuration, get botToken and guilds from {To Be Determined}.
-#if !DEBUG
-// TODO: Get botToken and guilds.
-#endif
+// Get the Discord authentication token for the bot.
+string botToken = discordConfig.GetValue<string>("DiscordBot:Token");
+
+// Get the Discord guilds in which the bot will register commands.
+string[] guildIDs = discordConfig.GetSection("DiscordBot:Guilds").Get<string[]>();
+Snowflake?[] guilds = new Snowflake?[guildIDs.Length];
+for (int i = 0; i < guildIDs.Length; i++)
+{
+    if (!DiscordSnowflake.TryParse(guildIDs[i], out guilds[i]))
+    {
+        // TODO: Handle invalid guild ID.
+        return;
+    }
+}
 
 // Verify that a bot token was set.
 if (botToken == "")
@@ -40,8 +50,18 @@ if (botToken == "")
     return;
 }
 
+// Verify that the guilds were set.
+foreach (Snowflake? guild in guilds)
+{
+    if (guild?.Value == 0)
+    {
+        // TODO: Handle missing guild ID.
+        return;
+    }
+}
+
 // Build the host.
-IHost host = Host.CreateDefaultBuilder(args)
+IHost host = Host.CreateDefaultBuilder()
     .UseWindowsService()
     .AddDiscordService(_ => botToken)
     .ConfigureServices(services =>
