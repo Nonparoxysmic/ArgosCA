@@ -8,31 +8,31 @@ using Remora.Discord.Hosting.Extensions;
 using Remora.Rest.Core;
 using Remora.Results;
 
-// Create configuration for Discord API connection settings.
+// Create application configuration.
 //     The default configuration is in appsettings.json.
 //     In Development environment, use Development configuration if available.
 //     Otherwise, use Production configuration if available.
-IConfiguration discordConfig;
+IConfiguration appConfig;
 if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
 {
-    discordConfig = new ConfigurationBuilder()
+    appConfig = new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
-        .AddJsonFile("discordsettings.Development.json", true)
+        .AddJsonFile("appsettings.Development.json", true)
         .Build();
 }
 else
 {
-    discordConfig = new ConfigurationBuilder()
+    appConfig = new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
-        .AddJsonFile("discordsettings.Production.json", true)
+        .AddJsonFile("appsettings.Production.json", true)
         .Build();
 }
 
 // Get the Discord authentication token for the bot.
-string botToken = discordConfig.GetValue<string>("DiscordBot:Token");
+string botToken = appConfig.GetValue<string>("DiscordConnection:Token");
 
 // Get the Discord guilds in which the bot will register commands.
-string[] guildIDs = discordConfig.GetSection("DiscordBot:Guilds").Get<string[]>();
+string[] guildIDs = appConfig.GetSection("DiscordConnection:Guilds").Get<string[]>();
 Snowflake?[] guilds = new Snowflake?[guildIDs.Length];
 for (int i = 0; i < guildIDs.Length; i++)
 {

@@ -1,6 +1,6 @@
-# My Discord API connection settings
-discordsettings.Development.json
-discordsettings.Production.json
+# My application configurations
+appsettings.Development.json
+appsettings.Production.json
 
 
 
