@@ -1,4 +1,5 @@
-﻿using Remora.Commands.Attributes;
+﻿using System.ComponentModel;
+using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Objects;
@@ -16,13 +17,24 @@ internal class SimpleCommands : CommandGroup
         _feedbackService = feedbackService;
     }
 
-    [Command("test")]
-    public async Task<IResult> TestCommandAsync()
+    [Command("ping")]
+    [Description("Ping the bot.")]
+    public async Task<IResult> PingCommandAsync()
     {
-        Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: "/test");
+        DateTime currentTime = DateTime.Now;
+        TimeZoneInfo localZoneInfo = TimeZoneInfo.Local;
+        string localZoneName = localZoneInfo.IsDaylightSavingTime(currentTime)
+            ? localZoneInfo.DaylightName
+            : localZoneInfo.StandardName;
+
+        string description = "Ping acknowledged." + Environment.NewLine
+            + currentTime + Environment.NewLine
+            + localZoneName;
+
+        Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: description);
 
         Result<IMessage> reply = await _feedbackService
-            .SendContextualEmbedAsync(embed, ct: this.CancellationToken);
+            .SendContextualEmbedAsync(embed, ct: CancellationToken);
 
         return !reply.IsSuccess
             ? Result.FromError(reply)
