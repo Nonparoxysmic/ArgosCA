@@ -40,4 +40,20 @@ internal class SimpleCommands : CommandGroup
             ? Result.FromError(reply)
             : Result.FromSuccess();
     }
+
+    [Command("roll")]
+    [Description("Roll dice.")]
+    public async Task<IResult> RollCommandAsync([Description("The dice expression.")] string expression)
+    {
+        string output = DiceRoller.EvaluateUserInput(expression);
+
+        Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: output);
+
+        Result<IMessage> reply = await _feedbackService
+            .SendContextualEmbedAsync(embed, ct: CancellationToken);
+
+        return !reply.IsSuccess
+            ? Result.FromError(reply)
+            : Result.FromSuccess();
+    }
 }
