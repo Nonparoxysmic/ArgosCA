@@ -45,7 +45,17 @@ internal class SimpleCommands : CommandGroup
     [Description("Roll dice.")]
     public async Task<IResult> RollCommandAsync([Description("The dice expression.")] string expression)
     {
-        string output = DiceRoller.EvaluateUserInput(expression);
+        string output;
+        if (expression.Contains('?') || expression.ToLower().Contains("help")
+            || expression.Trim().Length == 0)
+        {
+            // TODO: Implement help feature.
+            output = "Help feature to be added.";
+        }
+        else
+        {
+            output = DiceRoller.EvaluateUserInput(expression);
+        }
 
         Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: output);
 

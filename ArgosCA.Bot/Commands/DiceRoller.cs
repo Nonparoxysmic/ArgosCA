@@ -10,17 +10,15 @@ internal static class DiceRoller
     {
         input = RemoveWhiteSpace(input);
         string expression = ProcessInput(input);
-
-        string output = "Input: " + input + Environment.NewLine;
+        string output = $"Input: `{input}`{Environment.NewLine}";
         if (validExpression.IsMatch(expression))
         {
-            output += "Input is valid.";
+            return output + EvaluateExpression(expression);
         }
         else
         {
-            output += "Input is **NOT** valid.";
+            return output + "Error: invalid input.";
         }
-        return output + Environment.NewLine + "Roll command in development.";
     }
 
     private static string RemoveWhiteSpace(string input)
@@ -83,5 +81,11 @@ internal static class DiceRoller
             }
         }
         return new string(charArray, 0, j);
+    }
+
+    private static string EvaluateExpression(string expression)
+    {
+        // TODO: Implement evaluation.
+        return "Roll command in development.";
     }
 }
