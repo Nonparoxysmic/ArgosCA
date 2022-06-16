@@ -66,7 +66,7 @@ IHost host = Host.CreateDefaultBuilder()
     .AddDiscordService(_ => botToken)
     .ConfigureServices(services =>
     {
-        services.AddHostedService<Worker>()
+        services
             .AddDiscordCommands(true)
             .AddCommandTree()
                 .WithCommandGroup<SimpleCommands>();
