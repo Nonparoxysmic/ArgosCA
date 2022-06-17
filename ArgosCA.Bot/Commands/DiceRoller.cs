@@ -4,20 +4,24 @@ namespace ArgosCA.Bot.Commands;
 
 internal static class DiceRoller
 {
+    readonly static int diceLimit = 1_000_000;
+    readonly static Regex diceRoll = new(@"\d*d(\d+|%|F)([HL]\d*)?(?=([+\-*]|$))");
+    readonly static Regex diceRollCount = new(@"\d*(?=d)");
     readonly static Regex validExpression = new(@"^-?(\d+|\d*d(\d+|%|F)([HL]\d*)?)([+\-*](\d+|\d*d(\d+|%|F)([HL]\d*)?))*$");
+    readonly static string NL = Environment.NewLine;
 
     internal static string EvaluateUserInput(string input)
     {
         input = RemoveWhiteSpace(input);
         string expression = ProcessInput(input);
-        string output = $"Input: `{input}`{Environment.NewLine}";
+        string output = $"Input: `{input}`{NL}";
         if (validExpression.IsMatch(expression))
         {
             return output + EvaluateExpression(expression);
         }
         else
         {
-            return output + "Error: invalid input.";
+            return output + "Error: Invalid input.";
         }
     }
 
@@ -85,7 +89,33 @@ internal static class DiceRoller
 
     private static string EvaluateExpression(string expression)
     {
-        // TODO: Implement evaluation.
-        return "Roll command in development.";
+        string output = "";
+        int diceRolled = 0;
+        int debugCount = 1;
+        while (debugCount-- > 0)
+        {
+            Match rollExpression = diceRoll.Match(expression);
+            if (!rollExpression.Success) { break; }
+
+            string diceRollDigits = diceRollCount.Match(rollExpression.Value).Value;
+            int diceToRoll;
+            if (diceRollDigits.Length == 0) { diceToRoll = 1; }
+            else if (!int.TryParse(diceRollDigits, out diceToRoll) || diceToRoll > diceLimit)
+            {
+                return $"Error: Cannot evaluate {NL}`{rollExpression.Value}`{NL}(Too many dice.)";
+            }
+            if (diceToRoll > (diceLimit - diceRolled))
+            {
+                return $"Error: Cannot evaluate expression.{NL}(Too many dice.)";
+            }
+            diceRolled += diceToRoll;
+
+
+            // TODO: Evaluate each dice roll and replace in expression.
+        }
+
+        // TODO: Do math and return result.
+
+        return output + "Roll command in development.";
     }
 }
