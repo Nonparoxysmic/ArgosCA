@@ -1,20 +1,21 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 
 namespace ArgosCA.Bot.Commands;
 
 internal static class DiceRoller
 {
     readonly static int diceLimit = 1_000_000;
+    readonly static Regex diceCount = new(@"\d*(?=d)");
     readonly static Regex diceRoll = new(@"\d*d(\d+|%|F)([HL]\d*)?(?=([+\-*]|$))");
-    readonly static Regex diceRollCount = new(@"\d*(?=d)");
     readonly static Regex validExpression = new(@"^-?(\d+|\d*d(\d+|%|F)([HL]\d*)?)([+\-*](\d+|\d*d(\d+|%|F)([HL]\d*)?))*$");
     readonly static string NL = Environment.NewLine;
 
     internal static string EvaluateUserInput(string input)
     {
         input = RemoveWhiteSpace(input);
-        string expression = ProcessInput(input);
         string output = $"Input: `{input}`{NL}";
+        string expression = ProcessInput(input);
         if (validExpression.IsMatch(expression))
         {
             return output + EvaluateExpression(expression);
@@ -91,16 +92,15 @@ internal static class DiceRoller
     {
         string output = "";
         int diceRolled = 0;
-        int debugCount = 1;
-        while (debugCount-- > 0)
+        while (true)
         {
             Match rollExpression = diceRoll.Match(expression);
             if (!rollExpression.Success) { break; }
 
-            string diceRollDigits = diceRollCount.Match(rollExpression.Value).Value;
+            string diceCountDigits = diceCount.Match(rollExpression.Value).Value;
             int diceToRoll;
-            if (diceRollDigits.Length == 0) { diceToRoll = 1; }
-            else if (!int.TryParse(diceRollDigits, out diceToRoll) || diceToRoll > diceLimit)
+            if (diceCountDigits.Length == 0) { diceToRoll = 1; }
+            else if (!int.TryParse(diceCountDigits, out diceToRoll) || diceToRoll > diceLimit)
             {
                 return $"Error: Cannot evaluate {NL}`{rollExpression.Value}`{NL}(Too many dice.)";
             }
@@ -110,12 +110,45 @@ internal static class DiceRoller
             }
             diceRolled += diceToRoll;
 
+            RollResult rollResult = EvaluateRoll(rollExpression.Value);
 
-            // TODO: Evaluate each dice roll and replace in expression.
+            if (!rollResult.Success)
+            {
+                return $"Error: {rollResult.Error}";
+            }
+
+            // TODO: Add individual results to output.
+
+            expression = string.Concat(expression[0..rollExpression.Index],
+                rollResult.Value.ToString(),
+                expression[(rollExpression.Index + rollExpression.Value.Length)..]);
         }
 
         // TODO: Do math and return result.
 
         return output + "Roll command in development.";
+    }
+
+    private static RollResult EvaluateRoll(string expression)
+    {
+        // TODO: Implement roll evaluation.
+        return new RollResult();
+    }
+
+    private class RollResult
+    {
+        internal bool Success { get; private set; }
+        internal long Value { get; private set; }
+        internal string Error { get; private set; }
+        internal string Expression { get; set; }
+
+        public RollResult()
+        {
+            // TODO: Implement RollResult.
+            Success = true;
+            Value = 1234567890;
+            Error = "";
+            Expression = "";
+        }
     }
 }
