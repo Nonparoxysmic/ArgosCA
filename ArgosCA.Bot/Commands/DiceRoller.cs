@@ -110,7 +110,7 @@ internal static class DiceRoller
             }
             diceRolled += diceToRoll;
 
-            RollResult rollResult = EvaluateRoll(rollExpression.Value);
+            RollResult rollResult = EvaluateRoll(rollExpression.Value, diceToRoll);
 
             if (!rollResult.Success)
             {
@@ -129,10 +129,42 @@ internal static class DiceRoller
         return output + "Roll command in development.";
     }
 
-    private static RollResult EvaluateRoll(string expression)
+    private static RollResult EvaluateRoll(string expression, int quantity)
     {
-        // TODO: Implement roll evaluation.
-        return new RollResult();
+        string processedExpression = expression[(expression.IndexOf('d') + 1)..];
+        processedExpression = processedExpression.Replace("%", "100");
+
+        int keep = quantity;
+        foreach (char c in new char[] { 'H', 'L' })
+        {
+            int index = processedExpression.IndexOf(c);
+            if (index < 0) { continue; }
+            string digits = processedExpression[(index + 1)..];
+            if (digits.Length == 0) { keep = 1; }
+            else int.TryParse(digits, out keep);
+            if (c == 'L') { keep *= -1; }
+            processedExpression = processedExpression[0..index];
+        }
+
+        if (processedExpression.Contains('F'))
+        {
+            // TODO: Roll F dice.
+            return new RollResult(expression, "F dice not yet implemented.");
+        }
+
+        if (int.TryParse(processedExpression, out int faces))
+        {
+            RollResult rollResult = RollDice(quantity, faces, keep);
+            rollResult.Expression = expression;
+            return rollResult;
+        }
+        return new RollResult(expression, $"Cannot parse `{processedExpression}` number of faces.");
+    }
+
+    private static RollResult RollDice(int quantity, int faces, int keep)
+    {
+        // TODO: Implement dice rolling.
+        return new RollResult("", $"DEBUG: Rolled {quantity} d{faces} (keep = {keep}).");
     }
 
     private class RollResult
@@ -142,13 +174,11 @@ internal static class DiceRoller
         internal string Error { get; private set; }
         internal string Expression { get; set; }
 
-        public RollResult()
+        public RollResult(string expression, string errorMessage)
         {
-            // TODO: Implement RollResult.
-            Success = true;
-            Value = 1234567890;
-            Error = "";
-            Expression = "";
+            Success = false;
+            Error = errorMessage;
+            Expression = expression;
         }
     }
 }
