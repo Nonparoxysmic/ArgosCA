@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace ArgosCA.Bot.Commands;
@@ -126,7 +126,7 @@ internal static class DiceRoller
 
         // TODO: Do math and return result.
 
-        return output + "Roll command in development.";
+        return output + $"Final: `{expression}`{NL}Roll command in development.";
     }
 
     private static RollResult EvaluateRoll(string expression, int quantity)
@@ -141,7 +141,10 @@ internal static class DiceRoller
             if (index < 0) { continue; }
             string digits = processedExpression[(index + 1)..];
             if (digits.Length == 0) { keep = 1; }
-            else int.TryParse(digits, out keep);
+            else if (!int.TryParse(digits, out keep))
+            {
+                keep = quantity;
+            }
             if (c == 'L') { keep *= -1; }
             processedExpression = processedExpression[0..index];
         }
@@ -163,8 +166,40 @@ internal static class DiceRoller
 
     private static RollResult RollDice(int quantity, int faces, int keep)
     {
-        // TODO: Implement dice rolling.
-        return new RollResult("", $"DEBUG: Rolled {quantity} d{faces} (keep = {keep}).");
+        if (faces == 0)
+        {
+            return new RollResult("Cannot roll a die with zero faces.");
+        }
+        if (quantity == 0)
+        {
+            return new RollResult(0);
+        }
+        if (faces == 1)
+        {
+            return new RollResult(Math.Min(quantity, Math.Abs(keep)));
+        }
+
+        int[] dieResults = new int[quantity];
+        for (int i = 0; i < quantity; i++)
+        {
+            dieResults[i] = RandomNumberGenerator.GetInt32(faces) + 1;
+        }
+
+        bool[] dieKeeps = new bool[quantity];
+        if (keep == 0 || Math.Abs(keep) >= quantity)
+        {
+            if (keep != 0)
+            {
+                for (int i = 0; i < quantity; i++)
+                {
+                    dieKeeps[i] = true;
+                }
+            }
+            return new RollResult(dieResults, dieKeeps);
+        }
+
+        // TODO: Implement keeping only some of the dice.
+        return new RollResult("Partial keeping not yet implemented.");
     }
 
     private class RollResult
@@ -174,11 +209,57 @@ internal static class DiceRoller
         internal string Error { get; private set; }
         internal string Expression { get; set; }
 
-        public RollResult(string expression, string errorMessage)
+        private readonly bool[] dieKeeps;
+        private readonly int diceKept;
+        private readonly int[] dieResults;
+
+        public RollResult(int[] dieResults, bool[] dieKeeps)
+        {
+            Success = true;
+            this.dieKeeps = dieKeeps;
+            this.dieResults = dieResults;
+            for (int i = 0; i < dieResults.Length; i++)
+            {
+                if (dieKeeps[i])
+                {
+                    diceKept++;
+                    Value += dieResults[i];
+                }
+            }
+
+            Error = string.Empty;
+            Expression = string.Empty;
+        }
+
+        public RollResult(long result)
+        {
+            Success = true;
+            Value = result;
+
+            Error = string.Empty;
+            Expression = string.Empty;
+            dieKeeps = Array.Empty<bool>();
+            dieResults = Array.Empty<int>();
+        }
+
+        public RollResult(string rollExpression, string errorMessage)
         {
             Success = false;
             Error = errorMessage;
-            Expression = expression;
+            Expression = rollExpression;
+
+            dieKeeps = Array.Empty<bool>();
+            dieResults = Array.Empty<int>();
+        }
+
+        public RollResult(string errorMessage)
+        {
+            Success = false;
+            Error = errorMessage;
+
+            Expression = string.Empty;
+            dieKeeps = Array.Empty<bool>();
+            dieResults = Array.Empty<int>();
         }
     }
 }
