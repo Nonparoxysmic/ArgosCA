@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ArgosCA.Bot.Commands;
@@ -14,8 +15,8 @@ internal static class DiceRoller
     internal static string EvaluateUserInput(string input)
     {
         input = RemoveWhiteSpace(input);
-        string output = $"Input: `{input}`{NL}";
         string expression = ProcessInput(input);
+        string output = $"Input: `{expression}`{NL}";
         if (validExpression.IsMatch(expression))
         {
             return output + EvaluateExpression(expression);
@@ -117,7 +118,7 @@ internal static class DiceRoller
                 return $"Error: {rollResult.Error}";
             }
 
-            // TODO: Add individual results to output.
+            output += $"`{rollResult.Expression}`: {rollResult.ToString()}{NL}";
 
             expression = string.Concat(expression[0..rollExpression.Index],
                 rollResult.Value.ToString(),
@@ -288,6 +289,31 @@ internal static class DiceRoller
             Expression = string.Empty;
             dieKeeps = Array.Empty<bool>();
             dieResults = Array.Empty<int>();
+        }
+
+        public override string ToString()
+        {
+            if (!Success) { return Error; }
+            else if (dieResults.Length == 0 || dieResults.Length > 20)
+            {
+                return Value.ToString("N0");
+            }
+            else
+            {
+                StringBuilder output = new StringBuilder();
+                for (int i = 0; i < dieResults.Length; i++)
+                {
+                    if (dieKeeps[i])
+                    {
+                        output.Append($", **{dieResults[i].ToString()}**");
+                    }
+                    else
+                    {
+                        output.Append($", *{dieResults[i].ToString()}*");
+                    }
+                }
+                return output.ToString(2, output.Length - 2);
+            }
         }
     }
 }
