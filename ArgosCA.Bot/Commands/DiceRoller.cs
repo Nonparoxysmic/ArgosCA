@@ -152,8 +152,9 @@ internal static class DiceRoller
 
         if (processedExpression.Contains('F'))
         {
-            // TODO: Roll F dice.
-            return new RollResult(expression, "F dice not yet implemented.");
+            RollResult rollResultF = RollDiceF(quantity, keep);
+            rollResultF.Expression = expression;
+            return rollResultF;
         }
 
         if (int.TryParse(processedExpression, out int faces))
@@ -187,6 +188,64 @@ internal static class DiceRoller
         for (int i = 0; i < quantity; i++)
         {
             dieResults[i] = RandomNumberGenerator.GetInt32(faces) + 1;
+        }
+
+        // If keeping no dice or all of them...
+        if (keep == 0 || Math.Abs(keep) >= quantity)
+        {
+            if (keep != 0)
+            {
+                for (int i = 0; i < quantity; i++)
+                {
+                    dieKeeps[i] = true;
+                }
+            }
+            return new RollResult(dieResults, dieKeeps);
+        }
+
+        // Create a copy of the die results and sort them from lowest to highest.
+        int[] sortedResults = (int[])dieResults.Clone();
+        Array.Sort(sortedResults);
+        // If keeping the highest results...
+        if (keep > 0)
+        {
+            // Reverse the sorted results to be highest to lowest.
+            Array.Reverse(sortedResults);
+        }
+        // Create a nullable copy of the die results to track which to keep.
+        int?[] unkeptResults = new int?[quantity];
+        for (int i = 0; i < quantity; i++)
+        {
+            unkeptResults[i] = dieResults[i];
+        }
+        // For each sorted result to keep...
+        for (int i = 0; i < Math.Abs(keep); i++)
+        {
+            // Find the position of the result to keep in the array of unkept results.
+            int resultToKeep = sortedResults[i];
+            int pos = Array.IndexOf(unkeptResults, resultToKeep);
+            // Keep that result.
+            dieKeeps[pos] = true;
+            // Remove that result from the unkept results.
+            unkeptResults[pos] = null;
+        }
+        return new RollResult(dieResults, dieKeeps);
+    }
+
+    private static RollResult RollDiceF(int quantity, int keep)
+    {
+        if (quantity == 0)
+        {
+            return new RollResult(0);
+        }
+
+        int[] dieResults = new int[quantity];
+        bool[] dieKeeps = new bool[quantity];
+
+        // Roll the dice.
+        for (int i = 0; i < quantity; i++)
+        {
+            dieResults[i] = RandomNumberGenerator.GetInt32(3) - 1;
         }
 
         // If keeping no dice or all of them...
