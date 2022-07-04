@@ -9,7 +9,7 @@ internal static class DiceRoller
     readonly static int diceLimit = 1_000_000;
     readonly static Regex diceCount = new(@"\d*(?=d)");
     readonly static Regex diceRoll = new(@"\d*d(\d+|%|F)([HL]\d*)?(?=([+\-*]|$))");
-    readonly static Regex validExpression = new(@"^-?(\d+|\d*d(\d+|%|F)([HL]\d*)?)([+\-*](\d+|\d*d(\d+|%|F)([HL]\d*)?))*$");
+    readonly static Regex validExpression = new(@"^-?(\d+|\d*d(\d+|%|F)([HL]\d*)?)([+\-*]-?(\d+|\d*d(\d+|%|F)([HL]\d*)?))*$");
     readonly static string NL = Environment.NewLine;
 
     internal static string EvaluateUserInput(string input)
@@ -118,16 +118,21 @@ internal static class DiceRoller
                 return $"Error: {rollResult.Error}";
             }
 
-            output += $"`{rollResult.Expression}`: {rollResult.ToString()}{NL}";
+            output += $"`{rollResult.Expression}`: {rollResult}{NL}";
 
             expression = string.Concat(expression[0..rollExpression.Index],
                 rollResult.Value.ToString(),
                 expression[(rollExpression.Index + rollExpression.Value.Length)..]);
         }
 
-        // TODO: Do math and return result.
-
-        return output + $"Final: `{expression}`{NL}Roll command in development.";
+        if (DoMath(expression, out long finalResult, out string remaining))
+        {
+            return output + $"Result: **{finalResult:N0}**";
+        }
+        else
+        {
+            return output + $"Error: Unable to parse and evaluate {NL}`{remaining}`";
+        }
     }
 
     private static RollResult EvaluateRoll(string expression, int quantity)
@@ -290,6 +295,87 @@ internal static class DiceRoller
         return new RollResult(dieResults, dieKeeps);
     }
 
+    private static bool DoMath(string expression, out long result, out string remaining)
+    {
+        result = 0;
+        remaining = expression;
+        if (expression.Length == 0)
+        {
+            remaining = "  ";
+            return false;
+        }
+        if (long.TryParse(expression, out result)) { return true; }
+
+        int timeout = 0;
+        while (timeout++ < 1024)
+        {
+            expression = MergeUnaryOperators(expression);
+
+            if (TryMultiply(expression, out expression))
+            {
+                continue;
+            }
+
+            // TODO: Do addition and subtraction.
+
+            if (long.TryParse(expression, out result))
+            {
+                return true;
+            }
+            else
+            {
+                remaining = expression;
+                return false;
+            }
+        }
+        remaining = expression;
+        return false;
+    }
+
+    readonly static MatchEvaluator doubleUnary = new(match =>
+            (match.Value == "++" || match.Value == "--") ? "+" : "-");
+
+    private static string MergeUnaryOperators(string input)
+    {
+        input = Regex.Replace(input, @"[+-][+-]", doubleUnary);
+        return input;
+    }
+
+    readonly static Regex mathMultiply = new(@"\d+\*-?\d+(?=([+\-*]|$))");
+
+    private static bool TryMultiply(string expression, out string result)
+    {
+        bool multiplicationPerformed = false;
+        int timeout = 0;
+        while (timeout++ < 1024)
+        {
+            Match multiplication = mathMultiply.Match(expression);
+            if (!multiplication.Success) { break; }
+
+            int asteriskPos = multiplication.Value.IndexOf('*');
+            if (asteriskPos < 0)
+            {
+                result = expression;
+                return false;
+            }
+
+            if (!long.TryParse(multiplication.Value[0..asteriskPos], out long numOne)
+                || !long.TryParse(multiplication.Value[(asteriskPos + 1)..], out long numTwo))
+            {
+                result = expression;
+                return false;
+            }
+
+            expression = string.Concat(expression[0..multiplication.Index],
+                numOne * numTwo,
+                expression[(multiplication.Index + multiplication.Value.Length)..]);
+
+            multiplicationPerformed = true;
+        }
+        result = expression;
+        return multiplicationPerformed;
+    }
+
     private class RollResult
     {
         internal bool Success { get; private set; }
@@ -298,7 +384,6 @@ internal static class DiceRoller
         internal string Expression { get; set; }
 
         private readonly bool[] dieKeeps;
-        private readonly int diceKept;
         private readonly int[] dieResults;
 
         public RollResult(int[] dieResults, bool[] dieKeeps)
@@ -310,7 +395,6 @@ internal static class DiceRoller
             {
                 if (dieKeeps[i])
                 {
-                    diceKept++;
                     Value += dieResults[i];
                 }
             }
@@ -359,7 +443,7 @@ internal static class DiceRoller
             }
             else
             {
-                StringBuilder output = new StringBuilder();
+                StringBuilder output = new();
                 for (int i = 0; i < dieResults.Length; i++)
                 {
                     if (dieKeeps[i])
