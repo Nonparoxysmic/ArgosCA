@@ -316,7 +316,10 @@ internal static class DiceRoller
                 continue;
             }
 
-            // TODO: Do addition and subtraction.
+            if (TryAddSubtract(expression, out expression))
+            {
+                continue;
+            }
 
             if (long.TryParse(expression, out result))
             {
@@ -341,6 +344,7 @@ internal static class DiceRoller
         return input;
     }
 
+    readonly static Regex mathAddSubtract = new(@"\d+[+-]\d+(?=([+\-*]|$))");
     readonly static Regex mathMultiply = new(@"\d+\*-?\d+(?=([+\-*]|$))");
 
     private static bool TryMultiply(string expression, out string result)
@@ -374,6 +378,45 @@ internal static class DiceRoller
         }
         result = expression;
         return multiplicationPerformed;
+    }
+
+    private static bool TryAddSubtract(string expression, out string result)
+    {
+        bool addSubtractPerformed = false;
+        int timeout = 0;
+        while (timeout++ < 1024)
+        {
+            Match addSubtract = mathAddSubtract.Match(expression);
+            if (!addSubtract.Success) { break; }
+
+            int operatorPos = addSubtract.Value.IndexOf('+');
+            int sign = 1;
+            if (operatorPos < 0)
+            {
+                operatorPos = addSubtract.Value.IndexOf('-');
+                sign = -1;
+                if (operatorPos < 0)
+                {
+                    result = expression;
+                    return false;
+                }
+            }
+
+            if (!long.TryParse(addSubtract.Value[0..operatorPos], out long numOne)
+                || !long.TryParse(addSubtract.Value[(operatorPos + 1)..], out long numTwo))
+            {
+                result = expression;
+                return false;
+            }
+
+            expression = string.Concat(expression[0..addSubtract.Index],
+                numOne + sign * numTwo,
+                expression[(addSubtract.Index + addSubtract.Value.Length)..]);
+
+            addSubtractPerformed = true;
+        }
+        result = expression;
+        return addSubtractPerformed;
     }
 
     private class RollResult
