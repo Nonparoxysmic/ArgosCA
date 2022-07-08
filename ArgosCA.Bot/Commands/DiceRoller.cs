@@ -350,12 +350,9 @@ internal static class DiceRoller
     private static bool TryMultiply(string expression, out string result)
     {
         bool multiplicationPerformed = false;
-        int timeout = 0;
-        while (timeout++ < 1024)
+        Match multiplication = mathMultiply.Match(expression);
+        if (multiplication.Success)
         {
-            Match multiplication = mathMultiply.Match(expression);
-            if (!multiplication.Success) { break; }
-
             int asteriskPos = multiplication.Value.IndexOf('*');
             if (asteriskPos < 0)
             {
@@ -382,13 +379,12 @@ internal static class DiceRoller
 
     private static bool TryAddSubtract(string expression, out string result)
     {
-        bool addSubtractPerformed = false;
-        int timeout = 0;
-        while (timeout++ < 1024)
-        {
-            Match addSubtract = mathAddSubtract.Match(expression);
-            if (!addSubtract.Success) { break; }
+        // TODO: Correctly account for negative signs.
 
+        bool addSubtractPerformed = false;
+        Match addSubtract = mathAddSubtract.Match(expression);
+        if (addSubtract.Success)
+        {
             int operatorPos = addSubtract.Value.IndexOf('+');
             int sign = 1;
             if (operatorPos < 0)
