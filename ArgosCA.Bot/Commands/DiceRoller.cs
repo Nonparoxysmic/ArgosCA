@@ -344,7 +344,7 @@ internal static class DiceRoller
         return input;
     }
 
-    readonly static Regex mathAddSubtract = new(@"\d+[+-]\d+(?=([+\-*]|$))");
+    readonly static Regex mathAddSubtract = new(@"-?\d+[+-]\d+(?=([+\-*]|$))");
     readonly static Regex mathMultiply = new(@"\d+\*-?\d+(?=([+\-*]|$))");
 
     private static bool TryMultiply(string expression, out string result)
@@ -379,8 +379,6 @@ internal static class DiceRoller
 
     private static bool TryAddSubtract(string expression, out string result)
     {
-        // TODO: Correctly account for negative signs.
-
         bool addSubtractPerformed = false;
         Match addSubtract = mathAddSubtract.Match(expression);
         if (addSubtract.Success)
@@ -389,7 +387,11 @@ internal static class DiceRoller
             int sign = 1;
             if (operatorPos < 0)
             {
-                operatorPos = addSubtract.Value.IndexOf('-');
+                if (addSubtract.Value[0] == '-')
+                {
+                    operatorPos = addSubtract.Value[1..].IndexOf('-') + 1;
+                }
+                else operatorPos = addSubtract.Value.IndexOf('-');
                 sign = -1;
                 if (operatorPos < 0)
                 {
@@ -406,7 +408,7 @@ internal static class DiceRoller
             }
 
             expression = string.Concat(expression[0..addSubtract.Index],
-                numOne + sign * numTwo,
+                (numOne + sign * numTwo).ToString("+0;-0"),
                 expression[(addSubtract.Index + addSubtract.Value.Length)..]);
 
             addSubtractPerformed = true;
