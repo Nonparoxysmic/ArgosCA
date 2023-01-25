@@ -29,10 +29,11 @@ else
 }
 
 // Get the Discord authentication token for the bot.
-string botToken = appConfig.GetValue<string>("DiscordConnection:Token");
+string botToken = appConfig.GetValue<string>("DiscordConnection:Token") ?? string.Empty;
 
 // Get the Discord guilds in which the bot will register commands.
-string[] guildIDs = appConfig.GetSection("DiscordConnection:Guilds").Get<string[]>();
+IConfigurationSection guildSection = appConfig.GetSection("DiscordConnection:Guilds");
+string[] guildIDs = guildSection.Get<string[]>() ?? Array.Empty<string>();
 Snowflake?[] guilds = new Snowflake?[guildIDs.Length];
 for (int i = 0; i < guildIDs.Length; i++)
 {
@@ -44,7 +45,7 @@ for (int i = 0; i < guildIDs.Length; i++)
 }
 
 // Verify that a bot token was set.
-if (botToken == "")
+if (botToken == string.Empty)
 {
     // TODO: Handle missing bot token.
     return;
@@ -75,12 +76,6 @@ IHost host = Host.CreateDefaultBuilder()
 
 // Update slash commands.
 SlashService slashService = host.Services.GetRequiredService<SlashService>();
-Result checkSlashSupport = slashService.SupportsSlashCommands();
-if (!checkSlashSupport.IsSuccess)
-{
-    // TODO: Handle lack of slash command support.
-    return;
-}
 foreach (Snowflake? guild in guilds)
 {
     Result updateSlash = await slashService.UpdateSlashCommandsAsync(guild);
