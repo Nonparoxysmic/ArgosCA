@@ -2,9 +2,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ArgosCA.Bot.Commands;
+namespace ArgosCA.Bot.Dice;
 
-internal static class DiceRoller
+internal static class LegacyDiceRoller
 {
     readonly static int diceLimit = 1_000_000;
     readonly static Regex diceCount = new(@"\d*(?=d)");
@@ -105,7 +105,7 @@ internal static class DiceRoller
             {
                 return $"Error: Cannot evaluate {NL}`{rollExpression.Value}`{NL}(Too many dice.)";
             }
-            if (diceToRoll > (diceLimit - diceRolled))
+            if (diceToRoll > diceLimit - diceRolled)
             {
                 return $"Error: Cannot evaluate expression.{NL}(Too many dice.)";
             }
@@ -336,7 +336,7 @@ internal static class DiceRoller
     }
 
     readonly static MatchEvaluator doubleUnary = new(match =>
-            (match.Value == "++" || match.Value == "--") ? "+" : "-");
+            match.Value == "++" || match.Value == "--" ? "+" : "-");
 
     private static string MergeUnaryOperators(string input)
     {

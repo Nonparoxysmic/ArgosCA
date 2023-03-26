@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using ArgosCA.Bot.Dice;
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
@@ -54,7 +55,7 @@ internal class SimpleCommands : CommandGroup
         }
         else
         {
-            output = DiceRoller.EvaluateUserInput(expression);
+            output = LegacyDiceRoller.EvaluateUserInput(expression);
         }
 
         Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: output);
