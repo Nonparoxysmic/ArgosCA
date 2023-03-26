@@ -1,4 +1,3 @@
-using ArgosCA.Bot;
 using ArgosCA.Bot.Commands;
 using Remora.Commands.Extensions;
 using Remora.Discord.API;
@@ -17,32 +16,19 @@ if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
 {
     appConfig = new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
-        .AddJsonFile("appsettings.Development.json", true)
+        .AddJsonFile("appsettings.Development.json", optional: true)
         .Build();
 }
 else
 {
     appConfig = new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
-        .AddJsonFile("appsettings.Production.json", true)
+        .AddJsonFile("appsettings.Production.json", optional: true)
         .Build();
 }
 
 // Get the Discord authentication token for the bot.
 string botToken = appConfig.GetValue<string>("DiscordConnection:Token") ?? string.Empty;
-
-// Get the Discord guilds in which the bot will register commands.
-IConfigurationSection guildSection = appConfig.GetSection("DiscordConnection:Guilds");
-string[] guildIDs = guildSection.Get<string[]>() ?? Array.Empty<string>();
-Snowflake?[] guilds = new Snowflake?[guildIDs.Length];
-for (int i = 0; i < guildIDs.Length; i++)
-{
-    if (!DiscordSnowflake.TryParse(guildIDs[i], out guilds[i]))
-    {
-        // TODO: Handle invalid guild ID.
-        return;
-    }
-}
 
 // Verify that a bot token was set.
 if (botToken == string.Empty)
@@ -51,12 +37,34 @@ if (botToken == string.Empty)
     return;
 }
 
-// Verify that the guilds were set.
-foreach (Snowflake? guild in guilds)
+// Get the Discord guilds in which the bot will register commands.
+IConfigurationSection guildSection = appConfig.GetSection("DiscordConnection:Guilds");
+string[] guilds = guildSection.Get<string[]>() ?? Array.Empty<string>();
+Snowflake[] guildIDs = new Snowflake[guilds.Length];
+for (int i = 0; i < guilds.Length; i++)
 {
-    if (guild?.Value == 0)
+    if (DiscordSnowflake.TryParse(guilds[i], out Snowflake? snowflake))
     {
-        // TODO: Handle missing guild ID.
+        guildIDs[i] = snowflake ?? default;
+    }
+    else
+    {
+        // TODO: Handle invalid guild ID.
+        return;
+    }
+}
+
+// Verify that the guilds were set.
+if (guildIDs.Length == 0)
+{
+    // TODO: Handle missing guild IDs.
+    return;
+}
+foreach (Snowflake guildID in guildIDs)
+{
+    if (guildID.Value == 0)
+    {
+        // TODO: Handle invalid guild ID.
         return;
     }
 }
@@ -68,17 +76,18 @@ IHost host = Host.CreateDefaultBuilder()
     .ConfigureServices(services =>
     {
         services
-            .AddDiscordCommands(true)
+            .AddDiscordCommands(enableSlash: true)
             .AddCommandTree()
-                .WithCommandGroup<SimpleCommands>();
+                .WithCommandGroup<SimpleCommands>()
+                .Finish();
     })
     .Build();
 
 // Update slash commands.
 SlashService slashService = host.Services.GetRequiredService<SlashService>();
-foreach (Snowflake? guild in guilds)
+foreach (Snowflake guildID in guildIDs)
 {
-    Result updateSlash = await slashService.UpdateSlashCommandsAsync(guild);
+    Result updateSlash = await slashService.UpdateSlashCommandsAsync(guildID);
     if (!updateSlash.IsSuccess)
     {
         // TODO: Handle failure to update slash commands.
