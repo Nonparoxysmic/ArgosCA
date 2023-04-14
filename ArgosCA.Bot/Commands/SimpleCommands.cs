@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using ArgosCA.Bot.Dice;
+using ArgosCA.Bot.Source;
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
@@ -31,6 +32,23 @@ internal class SimpleCommands : CommandGroup
         string description = "Ping acknowledged." + Environment.NewLine
             + currentTime + Environment.NewLine
             + localZoneName;
+
+        Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: description);
+
+        Result<IMessage> reply = await _feedbackService
+            .SendContextualEmbedAsync(embed, ct: CancellationToken);
+
+        return !reply.IsSuccess
+            ? Result.FromError(reply)
+            : Result.FromSuccess();
+    }
+
+    [Command("version")]
+    [Description("Get the bot's version.")]
+    public async Task<IResult> VersionCommandAsync()
+    {
+        string description = "**Version** Alpha" + Environment.NewLine
+            + "**Build** " + Build.BuildTimestamp;
 
         Embed embed = new(Colour: _feedbackService.Theme.Secondary, Description: description);
 
