@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33516.290
-MinimumVisualStudioVersion = 16.0.28729.10
+MinimumVisualStudioVersion = 17.0.31903.59
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArgosCA.Bot", "ArgosCA.Bot\ArgosCA.Bot.csproj", "{BDADE302-6ABB-4FEA-9878-87A08E07A98E}"
 EndProject
 Global
